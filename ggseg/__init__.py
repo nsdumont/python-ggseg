@@ -137,7 +137,7 @@ def _render_data_(data, wd, cmap, norm, ax, edgecolor, use_underscore=True):
     edgecolor : color
         Edge color for patches
     """
-    
+    plt_objs = {}
     for k, v in data.items():
         # Find matching file with flexible key matching
         fp = find_matching_file(k, wd, use_underscore)
@@ -150,15 +150,19 @@ def _render_data_(data, wd, cmap, norm, ax, edgecolor, use_underscore=True):
             # Check if value is an array or scalar
             if isinstance(v, np.ndarray) and v.ndim == 2:
                 # Handle array data
-                _render_array_in_patch(v, path, cmap, norm, ax, edgecolor)
+                mesh = _render_array_in_patch(v, path, cmap, norm, ax, edgecolor)
+                plt_objs[k] = mesh
             else:
                 # Handle scalar data (original behavior)
                 c = cmap(norm(v))
-                ax.add_patch(patches.PathPatch(path, facecolor=c,
-                                             edgecolor=edgecolor, lw=1, zorder=2))
+                ptch = patches.PathPatch(path, facecolor=c,
+                                             edgecolor=edgecolor, lw=1, zorder=2)
+                ax.add_patch(ptch)
+                plt_objs[k] = ptch
         else:
             print(f'No matching file found for key: {k}')
             pass
+    return plt_objs
 
 def _render_array_in_patch(array_data, path, cmap, norm, ax, edgecolor):
 
@@ -200,6 +204,7 @@ def _render_array_in_patch(array_data, path, cmap, norm, ax, edgecolor):
     patch_boundary = patches.PathPatch(path, facecolor='none', 
                                      edgecolor=edgecolor, lw=1, zorder=3)
     ax.add_patch(patch_boundary)
+    return mesh
 
 
 def _svg_parse_(path):
@@ -448,7 +453,7 @@ def plot_dk(data, cmap='Spectral', background='k', edgecolor='w', ylabel='',
     # For every region with a provided value, we draw a patch with the color
     # matching the normalized scale
     cmap, norm = get_cmap_mixed_data(cmap, data.values(), vminmax=vminmax)
-    _render_data_(data, wd, cmap, norm, ax, edgecolor, use_underscore=True)
+    plt_objs = _render_data_(data, wd, cmap, norm, ax, edgecolor, use_underscore=True)
 
     # DKT regions with no provided values are rendered in gray
     data_regions = list(data.keys())
@@ -460,7 +465,7 @@ def plot_dk(data, cmap='Spectral', background='k', edgecolor='w', ylabel='',
     # A colorbar is added
     _add_colorbar_(ax, cmap, norm, edgecolor, fontsize*0.75, ylabel)
 
-    plt.show()
+    return ax, plt_objs, cmap
 
 def plot_hippo(data, cmap='Spectral', background='k', edgecolor='w', ylabel='',
              figsize=(15, 15), bordercolor='w', vminmax=[], title='',
@@ -512,13 +517,13 @@ def plot_hippo(data, cmap='Spectral', background='k', edgecolor='w', ylabel='',
     # For every region with a provided value, we draw a patch with the color
     # matching the normalized scale
     cmap, norm = get_cmap_mixed_data(cmap, data.values(), vminmax=vminmax)
-    _render_data_(data, wd, cmap, norm, ax, edgecolor, use_underscore=True)
+    plt_objs = _render_data_(data, wd, cmap, norm, ax, edgecolor, use_underscore=True)
 
 
     # A colorbar is added
     _add_colorbar_(ax, cmap, norm, edgecolor, fontsize*0.75, ylabel)
 
-    plt.show()
+    return ax, plt_objs, cmap
 
 def plot_aseg(data, cmap='Spectral', background='k', edgecolor='w', ylabel='',
               figsize=(15, 5), bordercolor='w', vminmax=[],
@@ -575,7 +580,7 @@ def plot_aseg(data, cmap='Spectral', background='k', edgecolor='w', ylabel='',
     # For every region with a provided value, we draw a patch with the color
     # matching the normalized scale
     cmap, norm = get_cmap_mixed_data(cmap, known_values, vminmax=vminmax)
-    _render_data_(data, wd, cmap, norm, ax, edgecolor,use_underscore=False)
+    plt_objs = _render_data_(data, wd, cmap, norm, ax, edgecolor,use_underscore=False)
 
     # The following regions are ignored/displayed in gray
     # NA = ['Cerebellum-Cortex', 'Cerebellum-White-Matter', 'Brain-Stem']
@@ -585,7 +590,7 @@ def plot_aseg(data, cmap='Spectral', background='k', edgecolor='w', ylabel='',
     # A colorbar is added
     _add_colorbar_(ax, cmap, norm, edgecolor, fontsize*0.75, ylabel)
 
-    plt.show()
+    return ax, plt_objs, cmap
 
 def plot_jhu(data, cmap='Spectral', background='k', edgecolor='w', ylabel='',
              figsize=(17, 5), bordercolor='w', vminmax=[], title='',
@@ -643,10 +648,10 @@ def plot_jhu(data, cmap='Spectral', background='k', edgecolor='w', ylabel='',
     # JHU regions with no provided values are rendered in gray
     NA = ['CSF']
     files = [open(op.join(wd, e)).read() for e in NA]
-    _render_regions_(files, ax, 'gray', edgecolor)
+    plt_objs = _render_regions_(files, ax, 'gray', edgecolor)
 
     # A colorbar is added
     _add_colorbar_(ax, cmap, norm, edgecolor, fontsize*0.75, ylabel)
 
-    plt.show()
+    return ax, plt_objs, cmap
 
